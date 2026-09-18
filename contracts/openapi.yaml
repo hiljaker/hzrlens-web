@@ -1,0 +1,135 @@
+openapi: 3.0.3
+info:
+  title: HZR Lens API
+  version: 0.1.0
+  description: Implemented development foundation. Scenario and analysis contracts are not implemented yet.
+  license:
+    name: Proprietary
+    url: https://github.com/hiljaker/hzrlens-api
+servers:
+  - url: /
+    description: Same origin as the API deployment
+security: []
+tags:
+  - name: System
+    description: Operational liveness and database readiness.
+paths:
+  /healthz:
+    get:
+      operationId: getLiveness
+      tags: [System]
+      summary: Check whether the process is responding
+      responses:
+        '200':
+          description: Process is live. Database availability is checked separately.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+        '400':
+          $ref: '#/components/responses/RequestError'
+        '403':
+          $ref: '#/components/responses/RequestError'
+        '500':
+          $ref: '#/components/responses/RequestError'
+  /api/v1/system/status:
+    get:
+      operationId: getSystemStatus
+      tags: [System]
+      summary: Check PostgreSQL connectivity and initial schema availability
+      responses:
+        '200':
+          description: Database and initial schema are available. No product feature readiness is implied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadySystem'
+        '503':
+          description: Database or initial schema unavailable. Contains no connection details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnavailableSystem'
+        '400':
+          $ref: '#/components/responses/RequestError'
+        '403':
+          $ref: '#/components/responses/RequestError'
+        '500':
+          $ref: '#/components/responses/RequestError'
+components:
+  responses:
+    RequestError:
+      description: Safe request error. The server generates a fresh X-Request-Id and never reflects request metadata.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    SystemStatus:
+      oneOf:
+        - $ref: '#/components/schemas/ReadySystem'
+        - $ref: '#/components/schemas/UnavailableSystem'
+      discriminator:
+        propertyName: status
+        mapping:
+          ready: '#/components/schemas/ReadySystem'
+          unavailable: '#/components/schemas/UnavailableSystem'
+    ReadySystem:
+      type: object
+      additionalProperties: false
+      required: [status, database, environment, advancedAiEnabled]
+      properties:
+        status:
+          type: string
+          enum: [ready]
+        database:
+          type: string
+          enum: [ready]
+        environment:
+          type: string
+          enum: [simulation]
+        advancedAiEnabled:
+          type: boolean
+          enum: [false]
+    UnavailableSystem:
+      type: object
+      additionalProperties: false
+      required: [status, database, environment, advancedAiEnabled]
+      properties:
+        status:
+          type: string
+          enum: [unavailable]
+        database:
+          type: string
+          enum: [unavailable]
+        environment:
+          type: string
+          enum: [simulation]
+        advancedAiEnabled:
+          type: boolean
+          enum: [false]
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, requestId]
+          properties:
+            code:
+              type: string
+              enum: [INVALID_REQUEST, NOT_FOUND, ORIGIN_NOT_ALLOWED, INTERNAL_ERROR]
+            message:
+              type: string
+              maxLength: 256
+            requestId:
+              type: string
+              pattern: '^[a-f0-9]{32}$'

@@ -1,0 +1,25 @@
+name: Web checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_ORIGIN: http://localhost:8080
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run api:lint
+      - run: npm run api:generate
+      - run: git diff --exit-code -- src/lib/api/generated.ts
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run build

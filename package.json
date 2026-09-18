@@ -1,0 +1,44 @@
+{
+  "name": "hzrlens-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write src next.config.ts eslint.config.mjs scripts",
+    "format:check": "prettier --check src next.config.ts eslint.config.mjs scripts",
+    "api:lint": "redocly lint contracts/openapi.yaml",
+    "api:generate": "openapi-typescript contracts/openapi.yaml -o src/lib/api/generated.ts"
+  },
+  "dependencies": {
+    "@emotion/cache": "11.14.0",
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/material": "9.4.0",
+    "@mui/material-nextjs": "9.4.0",
+    "@tanstack/react-query": "5.103.1",
+    "next": "16.3.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.53.3",
+    "@types/node": "24.13.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.5",
+    "openapi-typescript": "7.13.0",
+    "prettier": "3.9.8",
+    "typescript": "5.9.3"
+  }
+}
