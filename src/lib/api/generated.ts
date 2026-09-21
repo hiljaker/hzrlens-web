@@ -4,6 +4,43 @@
  */
 
 export interface paths {
+    "/api/v1/simulation-sessions/{sessionId}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a consistent session dashboard */
+        get: operations["getSessionOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Subscribe to committed session revisions
+         * @description session.updated invalidates all session REST snapshots. IDs are sessionId:sequence. Retains 512 revisions across resets; unknown, future or expired cursors emit stream.resync_required then close. Clients refetch and reconnect without the cursor. Heartbeat every 15 seconds; connections rotate after five minutes. At most three connections/session and 100/process.
+         */
+        get: operations["streamSessionRevisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -38,10 +75,581 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/scenarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List validated scenarios */
+        get: operations["listScenarios"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scenarios/{scenarioId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get narrative and topology without hidden expectations */
+        get: operations["getScenario"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create an isolated session with a 30 minute TTL */
+        post: operations["createSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get persisted simulation state */
+        get: operations["getSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** start simulation session */
+        post: operations["startSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** pause simulation session */
+        post: operations["pauseSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** resume simulation session */
+        post: operations["resumeSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** reset simulation session */
+        post: operations["resetSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** replay simulation session */
+        post: operations["replaySession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List incidents detected in one session */
+        get: operations["listIncidents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/incidents/{incidentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get incident facts and affected services */
+        get: operations["getIncident"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/incidents/{incidentId}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the curated incident timeline */
+        get: operations["getIncidentTimeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/incidents/{incidentId}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get selected evidence ordered by correlation rank */
+        get: operations["getIncidentEvidence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/incidents/{incidentId}/investigation-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get bounded context used by analysis modes */
+        get: operations["getInvestigationContext"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulation-sessions/{sessionId}/incidents/{incidentId}/analyses/standard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get deterministic evidence-led analysis */
+        get: operations["getStandardAnalysis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SessionRevision: {
+            /** @enum {string} */
+            schemaVersion: "1";
+            sessionId: string;
+            generation: number;
+            sequence: number;
+            simulationTimeMs: number;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        SessionOverview: {
+            sessionId: string;
+            generation: number;
+            /** @enum {string} */
+            status: "idle" | "running" | "paused" | "completed";
+            simulationTimeMs: number;
+            services: {
+                id: string;
+                displayName: string;
+                /** @enum {string} */
+                status: "healthy" | "degraded" | "unavailable";
+                metrics: components["schemas"]["MetricPayload"][];
+            }[];
+            incidents: components["schemas"]["Incident"][];
+            deployments: {
+                serviceId: string;
+                simulationTimeMs: number;
+                version: string;
+                status: string;
+            }[];
+        };
+        ScenarioSummary: {
+            id: string;
+            version: number;
+            title: string;
+            description: string;
+            durationSeconds: number;
+            defaultSeed: number;
+        };
+        ScenarioService: {
+            id: string;
+            displayName: string;
+            /** @enum {string} */
+            type: "api" | "worker" | "database" | "external";
+            /** @enum {string} */
+            criticality: "low" | "medium" | "high";
+            /** @enum {string} */
+            initialStatus: "healthy" | "degraded" | "unavailable";
+            initialVersion?: string;
+        };
+        ScenarioDependency: {
+            sourceServiceId: string;
+            targetServiceId: string;
+            /** @enum {string} */
+            relationship: "calls" | "reads_from" | "writes_to" | "publishes_to" | "consumes_from";
+        };
+        Session: {
+            id: string;
+            scenarioId: string;
+            scenarioVersion: number;
+            seed: number;
+            generation: number;
+            /** @enum {string} */
+            status: "idle" | "running" | "paused" | "completed";
+            simulationTimeMs: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            completedAt?: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        CreateSession: {
+            scenarioId: string;
+            scenarioVersion?: number;
+            seed?: number;
+        };
+        SessionCommand: {
+            seed?: number;
+        };
+        ScenarioDetail: {
+            id: string;
+            version: number;
+            title: string;
+            description: string;
+            durationSeconds: number;
+            defaultSeed: number;
+            services: components["schemas"]["ScenarioService"][];
+            dependencies: components["schemas"]["ScenarioDependency"][];
+            speedMultiplier: number;
+        };
+        /** @enum {string} */
+        IncidentStatus: "active" | "recovering" | "resolved";
+        IncidentTrigger: {
+            ruleId: string;
+            metric: string;
+            observedValue: number;
+            threshold: number;
+            explanation: string;
+        };
+        Incident: {
+            id: string;
+            sessionId: string;
+            generation: number;
+            title: string;
+            /** @enum {string} */
+            severity: "P1" | "P2" | "P3" | "P4";
+            status: components["schemas"]["IncidentStatus"];
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            detectedAt: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+            primaryServiceId: string;
+            affectedServiceIds: string[];
+            trigger: components["schemas"]["IncidentTrigger"];
+        };
+        LogPayload: {
+            /** @enum {string} */
+            severity: "debug" | "info" | "warning" | "error" | "critical";
+            message: string;
+        };
+        MetricPayload: {
+            metric: string;
+            value: number;
+            unit: string;
+        };
+        DeploymentPayload: {
+            version: string;
+            previousVersion?: string;
+            /** @enum {string} */
+            status: "started" | "completed" | "failed";
+        };
+        ErrorPayload: {
+            /** @enum {string} */
+            severity: "debug" | "info" | "warning" | "error" | "critical";
+            code?: string;
+            message: string;
+        };
+        StatePayload: {
+            /** @enum {string} */
+            previousStatus: "healthy" | "degraded" | "unavailable";
+            /** @enum {string} */
+            currentStatus: "healthy" | "degraded" | "unavailable";
+        };
+        JobPayload: {
+            jobName: string;
+            reason: string;
+        };
+        TelemetryEvent: components["schemas"]["LogTelemetryEvent"] | components["schemas"]["MetricTelemetryEvent"] | components["schemas"]["DeploymentTelemetryEvent"] | components["schemas"]["ErrorTelemetryEvent"] | components["schemas"]["StateTelemetryEvent"] | components["schemas"]["JobTelemetryEvent"];
+        TelemetryEventBase: {
+            id: string;
+            sessionId: string;
+            generation: number;
+            sequence: number;
+            /** Format: date-time */
+            timestamp: string;
+            /** @enum {string} */
+            environment: "simulation";
+            fixtureKey?: string;
+            offsetMs: number;
+            serviceId: string;
+        };
+        LogTelemetryEvent: components["schemas"]["TelemetryEventBase"] & {
+            /** @enum {string} */
+            kind: "log";
+            payload: components["schemas"]["LogPayload"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "log";
+        };
+        MetricTelemetryEvent: components["schemas"]["TelemetryEventBase"] & {
+            /** @enum {string} */
+            kind: "metric";
+            payload: components["schemas"]["MetricPayload"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "metric";
+        };
+        DeploymentTelemetryEvent: components["schemas"]["TelemetryEventBase"] & {
+            /** @enum {string} */
+            kind: "deployment";
+            payload: components["schemas"]["DeploymentPayload"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "deployment";
+        };
+        ErrorTelemetryEvent: components["schemas"]["TelemetryEventBase"] & {
+            /** @enum {string} */
+            kind: "error";
+            payload: components["schemas"]["ErrorPayload"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "error";
+        };
+        StateTelemetryEvent: components["schemas"]["TelemetryEventBase"] & {
+            /** @enum {string} */
+            kind: "service_state";
+            payload: components["schemas"]["StatePayload"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "service_state";
+        };
+        JobTelemetryEvent: components["schemas"]["TelemetryEventBase"] & {
+            /** @enum {string} */
+            kind: "job_failure";
+            payload: components["schemas"]["JobPayload"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "job_failure";
+        };
+        CorrelationScore: {
+            temporalScore: number;
+            serviceScore: number;
+            dependencyScore: number;
+            anomalyScore: number;
+            eventTypeScore: number;
+            precedenceScore: number;
+            totalScore: number;
+        };
+        CorrelationReason: {
+            type: string;
+            description: string;
+            contribution: number;
+        };
+        Evidence: {
+            id: string;
+            incidentId: string;
+            sourceEvent: components["schemas"]["TelemetryEvent"];
+            rank: number;
+            title: string;
+            description: string;
+            correlation: components["schemas"]["CorrelationScore"];
+            reasons: components["schemas"]["CorrelationReason"][];
+            scoringVersion: string;
+        };
+        TimelineEntry: {
+            eventId: string;
+            simulationOffsetMs: number;
+            title: string;
+            description: string;
+        };
+        MetricSummary: {
+            serviceId: string;
+            metric: string;
+            unit: string;
+            minimum: number;
+            maximum: number;
+            latest: number;
+        };
+        InvestigationContext: {
+            /** @enum {string} */
+            schemaVersion: "1";
+            incident: components["schemas"]["Incident"];
+            services: components["schemas"]["ScenarioService"][];
+            dependencies: components["schemas"]["ScenarioDependency"][];
+            metricSummaries: components["schemas"]["MetricSummary"][];
+            timeline: components["schemas"]["TimelineEntry"][];
+            evidence: components["schemas"]["Evidence"][];
+        };
+        EvidenceRelationship: {
+            evidenceId: string;
+            /** @enum {string} */
+            relationship: "supporting" | "contradictory";
+        };
+        Hypothesis: {
+            id: string;
+            title: string;
+            summary: string;
+            evidenceScore: number;
+            evidence: components["schemas"]["EvidenceRelationship"][];
+        };
+        Recommendation: {
+            id: string;
+            hypothesisId?: string;
+            title: string;
+            rationale: string;
+            /** @enum {string} */
+            priority: "now" | "next" | "later";
+        };
+        AnalysisResult: {
+            id: string;
+            incidentId: string;
+            /** @enum {string} */
+            contextSchemaVersion: "1";
+            engineVersion: string;
+            /** @enum {string} */
+            mode: "standard";
+            summary: string;
+            hypotheses: components["schemas"]["Hypothesis"][];
+            recommendedActions: components["schemas"]["Recommendation"][];
+            warnings: string[];
+            /** Format: date-time */
+            createdAt: string;
+        };
         SystemStatus: components["schemas"]["ReadySystem"] | components["schemas"]["UnavailableSystem"];
         ReadySystem: {
             /**
@@ -72,7 +680,7 @@ export interface components {
         ErrorResponse: {
             error: {
                 /** @enum {string} */
-                code: "INVALID_REQUEST" | "NOT_FOUND" | "ORIGIN_NOT_ALLOWED" | "INTERNAL_ERROR";
+                code: "INVALID_REQUEST" | "NOT_FOUND" | "ORIGIN_NOT_ALLOWED" | "INTERNAL_ERROR" | "SCENARIO_NOT_FOUND" | "SESSION_NOT_FOUND" | "INCIDENT_NOT_FOUND" | "INVALID_SEED" | "INVALID_SESSION_STATE" | "STALE_SESSION_GENERATION" | "IDEMPOTENCY_CONFLICT" | "RATE_LIMITED" | "SESSION_LIMIT_REACHED" | "DEPENDENCY_UNAVAILABLE";
                 message: string;
                 requestId: string;
             };
@@ -89,13 +697,68 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        SessionId: string;
+        IncidentId: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getSessionOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current generation, service metrics, incidents and five recent deployments. Metrics are per-service; cross-service aggregates are not inferred. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOverview"];
+                };
+            };
+            404: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    streamSessionRevisions: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Last-Event-ID"?: string;
+            };
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SSE session.updated JSON uses SessionRevision; stream.heartbeat and stream.resync_required carry an empty object and no ID. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            400: components["responses"]["RequestError"];
+            404: components["responses"]["RequestError"];
+            429: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
     getLiveness: {
         parameters: {
             query?: never;
@@ -152,6 +815,479 @@ export interface operations {
                     "application/json": components["schemas"]["UnavailableSystem"];
                 };
             };
+        };
+    };
+    listScenarios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Committed resource snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ScenarioSummary"][];
+                    };
+                };
+            };
+            400: components["responses"]["RequestError"];
+            403: components["responses"]["RequestError"];
+            404: components["responses"]["RequestError"];
+            409: components["responses"]["RequestError"];
+            413: components["responses"]["RequestError"];
+            429: components["responses"]["RequestError"];
+            500: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    getScenario: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scenarioId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Committed resource snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioDetail"];
+                };
+            };
+            400: components["responses"]["RequestError"];
+            403: components["responses"]["RequestError"];
+            404: components["responses"]["RequestError"];
+            409: components["responses"]["RequestError"];
+            413: components["responses"]["RequestError"];
+            429: components["responses"]["RequestError"];
+            500: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    createSession: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated random key; reuse only when retrying the identical request. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSession"];
+            };
+        };
+        responses: {
+            /** @description Committed resource snapshot. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["RequestError"];
+            403: components["responses"]["RequestError"];
+            404: components["responses"]["RequestError"];
+            409: components["responses"]["RequestError"];
+            413: components["responses"]["RequestError"];
+            429: components["responses"]["RequestError"];
+            500: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Committed resource snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["RequestError"];
+            403: components["responses"]["RequestError"];
+            404: components["responses"]["RequestError"];
+            409: components["responses"]["RequestError"];
+            413: components["responses"]["RequestError"];
+            429: components["responses"]["RequestError"];
+            500: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    startSession: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated random key; reuse only when retrying the identical request. */
+                "Idempotency-Key": string;
+                "X-Session-Generation": number;
+            };
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Committed resource snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["RequestError"];
+            403: components["responses"]["RequestError"];
+            404: components["responses"]["RequestError"];
+            409: components["responses"]["RequestError"];
+            413: components["responses"]["RequestError"];
+            429: components["responses"]["RequestError"];
+            500: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    pauseSession: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated random key; reuse only when retrying the identical request. */
+                "Idempotency-Key": string;
+                "X-Session-Generation": number;
+            };
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Committed resource snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["RequestError"];
+            403: components["responses"]["RequestError"];
+            404: components["responses"]["RequestError"];
+            409: components["responses"]["RequestError"];
+            413: components["responses"]["RequestError"];
+            429: components["responses"]["RequestError"];
+            500: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    resumeSession: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated random key; reuse only when retrying the identical request. */
+                "Idempotency-Key": string;
+                "X-Session-Generation": number;
+            };
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Committed resource snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["RequestError"];
+            403: components["responses"]["RequestError"];
+            404: components["responses"]["RequestError"];
+            409: components["responses"]["RequestError"];
+            413: components["responses"]["RequestError"];
+            429: components["responses"]["RequestError"];
+            500: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    resetSession: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated random key; reuse only when retrying the identical request. */
+                "Idempotency-Key": string;
+                "X-Session-Generation": number;
+            };
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionCommand"];
+            };
+        };
+        responses: {
+            /** @description Committed resource snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["RequestError"];
+            403: components["responses"]["RequestError"];
+            404: components["responses"]["RequestError"];
+            409: components["responses"]["RequestError"];
+            413: components["responses"]["RequestError"];
+            429: components["responses"]["RequestError"];
+            500: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    replaySession: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated random key; reuse only when retrying the identical request. */
+                "Idempotency-Key": string;
+                "X-Session-Generation": number;
+            };
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionCommand"];
+            };
+        };
+        responses: {
+            /** @description Committed resource snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["RequestError"];
+            403: components["responses"]["RequestError"];
+            404: components["responses"]["RequestError"];
+            409: components["responses"]["RequestError"];
+            413: components["responses"]["RequestError"];
+            429: components["responses"]["RequestError"];
+            500: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    listIncidents: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["IncidentStatus"];
+            };
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Incidents ordered by newest analysis snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Incident"][];
+                    };
+                };
+            };
+            400: components["responses"]["RequestError"];
+            404: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    getIncident: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+                incidentId: components["parameters"]["IncidentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted incident snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Incident"];
+                };
+            };
+            404: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    getIncidentTimeline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+                incidentId: components["parameters"]["IncidentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Evidence-backed entries ordered by simulation time. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["TimelineEntry"][];
+                    };
+                };
+            };
+            404: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    getIncidentEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+                incidentId: components["parameters"]["IncidentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Selected evidence with scores, reasons and source telemetry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Evidence"][];
+                    };
+                };
+            };
+            404: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    getInvestigationContext: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+                incidentId: components["parameters"]["IncidentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Curated context without hidden scenario expectations. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvestigationContext"];
+                };
+            };
+            404: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
+        };
+    };
+    getStandardAnalysis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+                incidentId: components["parameters"]["IncidentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Standard Analysis generated atomically with selected evidence. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisResult"];
+                };
+            };
+            404: components["responses"]["RequestError"];
+            503: components["responses"]["RequestError"];
         };
     };
 }

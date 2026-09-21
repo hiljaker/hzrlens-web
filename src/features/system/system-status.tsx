@@ -7,6 +7,7 @@ import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import Refresh from "@mui/icons-material/Refresh";
 import { fetchSystemStatus } from "@/lib/api/system-status";
 
 export function SystemStatus() {
@@ -26,7 +27,8 @@ export function SystemStatus() {
         border: "1px solid",
         borderColor: "divider",
         bgcolor: "background.paper",
-        p: { xs: 3, md: 4 },
+        p: { xs: 2, md: 2.5 },
+        borderRadius: 3,
       }}
     >
       <Stack
@@ -35,16 +37,31 @@ export function SystemStatus() {
           justifyContent: "space-between",
           alignItems: "center",
           gap: 2,
-          mb: 3,
+          mb: 1,
         }}
       >
-        <Typography id="system-heading" variant="h2">
-          Environment check
+        <Typography id="system-heading" variant="h2" sx={{ fontSize: 16 }}>
+          Ready when you are
         </Typography>
         <Button
-          variant="outlined"
+          variant="text"
           onClick={handleRefresh}
           disabled={query.isFetching}
+          startIcon={
+            <Refresh
+              fontSize="small"
+              sx={{
+                animation: query.isFetching
+                  ? "spin 1s linear infinite"
+                  : "none",
+                "@keyframes spin": {
+                  "0%": { transform: "rotate(0deg)" },
+                  "100%": { transform: "rotate(360deg)" },
+                },
+              }}
+            />
+          }
+          aria-label="Check connection to API and database"
         >
           Check connection
         </Button>
@@ -64,8 +81,7 @@ export function SystemStatus() {
         )}
         {!query.isError && query.data?.status === "ready" && (
           <Alert severity="success">
-            API connected. PostgreSQL is reachable and the initial schema is
-            installed.
+            Connected. Your investigation workspace is ready.
           </Alert>
         )}
         {!query.isError && query.data?.status === "unavailable" && (
@@ -80,10 +96,6 @@ export function SystemStatus() {
           </Typography>
         )}
       </Box>
-      <Typography color="text.secondary" variant="body2" sx={{ mt: 3 }}>
-        This checks the development foundation. Scenario playback and incident
-        analysis are not available yet.
-      </Typography>
     </Box>
   );
 }

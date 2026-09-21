@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: HZR Lens API
-  version: 0.1.0
-  description: Implemented development foundation. Scenario and analysis contracts are not implemented yet.
+  version: 0.4.0
+  description: Persistent simulation, overview, replayable SSE invalidation, curated evidence and Standard Analysis. Optional AI remains planned.
   license:
     name: Proprietary
     url: https://github.com/hiljaker/hzrlens-api
@@ -11,16 +11,66 @@ servers:
     description: Same origin as the API deployment
 security: []
 tags:
+  - name: Simulation
+    description: Validated scenarios and isolated simulation sessions.
+  - name: Investigation
+    description: Session-scoped incidents, curated evidence and deterministic Standard Analysis.
   - name: System
     description: Operational liveness and database readiness.
 paths:
+  /api/v1/simulation-sessions/{sessionId}/overview:
+    get:
+      operationId: getSessionOverview
+      tags: [Simulation]
+      summary: Read a consistent session dashboard
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Current generation, service metrics, incidents and five recent deployments. Metrics are per-service; cross-service aggregates are not inferred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionOverview'
+        '404':
+          $ref: '#/components/responses/RequestError'
+        '503':
+          $ref: '#/components/responses/RequestError'
+  /api/v1/simulation-sessions/{sessionId}/events:
+    get:
+      operationId: streamSessionRevisions
+      tags: [Simulation]
+      summary: Subscribe to committed session revisions
+      description: 'session.updated invalidates all session REST snapshots. IDs are sessionId:sequence. Retains 512 revisions across resets; unknown, future or expired cursors emit stream.resync_required then close. Clients refetch and reconnect without the cursor. Heartbeat every 15 seconds; connections rotate after five minutes. At most three connections/session and 100/process.'
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - in: header
+          name: Last-Event-ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}:[1-9][0-9]*$'
+      responses:
+        '200':
+          description: SSE session.updated JSON uses SessionRevision; stream.heartbeat and stream.resync_required carry an empty object and no ID.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/RequestError'
+        '404':
+          $ref: '#/components/responses/RequestError'
+        '429':
+          $ref: '#/components/responses/RequestError'
+        '503':
+          $ref: '#/components/responses/RequestError'
   /healthz:
     get:
       operationId: getLiveness
       tags: [System]
       summary: Check whether the process is responding
       responses:
-        '200':
+        "200":
           description: Process is live. Database availability is checked separately.
           content:
             application/json:
@@ -32,54 +82,1247 @@ paths:
                   status:
                     type: string
                     enum: [ok]
-        '400':
-          $ref: '#/components/responses/RequestError'
-        '403':
-          $ref: '#/components/responses/RequestError'
-        '500':
-          $ref: '#/components/responses/RequestError'
+        "400":
+          $ref: "#/components/responses/RequestError"
+        "403":
+          $ref: "#/components/responses/RequestError"
+        "500":
+          $ref: "#/components/responses/RequestError"
   /api/v1/system/status:
     get:
       operationId: getSystemStatus
       tags: [System]
       summary: Check PostgreSQL connectivity and initial schema availability
       responses:
-        '200':
+        "200":
           description: Database and initial schema are available. No product feature readiness is implied.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReadySystem'
-        '503':
+                $ref: "#/components/schemas/ReadySystem"
+        "503":
           description: Database or initial schema unavailable. Contains no connection details.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UnavailableSystem'
-        '400':
-          $ref: '#/components/responses/RequestError'
-        '403':
-          $ref: '#/components/responses/RequestError'
-        '500':
-          $ref: '#/components/responses/RequestError'
+                $ref: "#/components/schemas/UnavailableSystem"
+        "400":
+          $ref: "#/components/responses/RequestError"
+        "403":
+          $ref: "#/components/responses/RequestError"
+        "500":
+          $ref: "#/components/responses/RequestError"
+  /api/v1/scenarios:
+    {
+      "get":
+        {
+          "operationId": "listScenarios",
+          "tags": ["Simulation"],
+          "summary": "List validated scenarios",
+          "responses":
+            {
+              "200":
+                {
+                  "description": "Committed resource snapshot.",
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": ["items"],
+                              "properties":
+                                {
+                                  "items":
+                                    {
+                                      "type": "array",
+                                      "items":
+                                        {
+                                          "$ref": "#/components/schemas/ScenarioSummary",
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+              "400": { "$ref": "#/components/responses/RequestError" },
+              "403": { "$ref": "#/components/responses/RequestError" },
+              "404": { "$ref": "#/components/responses/RequestError" },
+              "409": { "$ref": "#/components/responses/RequestError" },
+              "413": { "$ref": "#/components/responses/RequestError" },
+              "429": { "$ref": "#/components/responses/RequestError" },
+              "500": { "$ref": "#/components/responses/RequestError" },
+              "503": { "$ref": "#/components/responses/RequestError" },
+            },
+        },
+    }
+  /api/v1/scenarios/{scenarioId}:
+    {
+      "get":
+        {
+          "operationId": "getScenario",
+          "tags": ["Simulation"],
+          "summary": "Get narrative and topology without hidden expectations",
+          "responses":
+            {
+              "200":
+                {
+                  "description": "Committed resource snapshot.",
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            { "$ref": "#/components/schemas/ScenarioDetail" },
+                        },
+                    },
+                },
+              "400": { "$ref": "#/components/responses/RequestError" },
+              "403": { "$ref": "#/components/responses/RequestError" },
+              "404": { "$ref": "#/components/responses/RequestError" },
+              "409": { "$ref": "#/components/responses/RequestError" },
+              "413": { "$ref": "#/components/responses/RequestError" },
+              "429": { "$ref": "#/components/responses/RequestError" },
+              "500": { "$ref": "#/components/responses/RequestError" },
+              "503": { "$ref": "#/components/responses/RequestError" },
+            },
+          "parameters":
+            [
+              {
+                "name": "scenarioId",
+                "in": "path",
+                "required": true,
+                "schema": { "type": "string", "maxLength": 64 },
+              },
+            ],
+        },
+    }
+  /api/v1/simulation-sessions:
+    {
+      "post":
+        {
+          "operationId": "createSession",
+          "tags": ["Simulation"],
+          "summary": "Create an isolated session with a 30 minute TTL",
+          "responses":
+            {
+              "201":
+                {
+                  "description": "Committed resource snapshot.",
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema": { "$ref": "#/components/schemas/Session" },
+                        },
+                    },
+                },
+              "400": { "$ref": "#/components/responses/RequestError" },
+              "403": { "$ref": "#/components/responses/RequestError" },
+              "404": { "$ref": "#/components/responses/RequestError" },
+              "409": { "$ref": "#/components/responses/RequestError" },
+              "413": { "$ref": "#/components/responses/RequestError" },
+              "429": { "$ref": "#/components/responses/RequestError" },
+              "500": { "$ref": "#/components/responses/RequestError" },
+              "503": { "$ref": "#/components/responses/RequestError" },
+            },
+          "parameters":
+            [
+              {
+                "name": "Idempotency-Key",
+                "in": "header",
+                "required": true,
+                "description": "Client-generated random key; reuse only when retrying the identical request.",
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32,128}$" },
+              },
+            ],
+          "requestBody":
+            {
+              "required": true,
+              "content":
+                {
+                  "application/json":
+                    {
+                      "schema":
+                        { "$ref": "#/components/schemas/CreateSession" },
+                    },
+                },
+            },
+        },
+    }
+  /api/v1/simulation-sessions/{sessionId}:
+    {
+      "get":
+        {
+          "operationId": "getSession",
+          "tags": ["Simulation"],
+          "summary": "Get persisted simulation state",
+          "responses":
+            {
+              "200":
+                {
+                  "description": "Committed resource snapshot.",
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema": { "$ref": "#/components/schemas/Session" },
+                        },
+                    },
+                },
+              "400": { "$ref": "#/components/responses/RequestError" },
+              "403": { "$ref": "#/components/responses/RequestError" },
+              "404": { "$ref": "#/components/responses/RequestError" },
+              "409": { "$ref": "#/components/responses/RequestError" },
+              "413": { "$ref": "#/components/responses/RequestError" },
+              "429": { "$ref": "#/components/responses/RequestError" },
+              "500": { "$ref": "#/components/responses/RequestError" },
+              "503": { "$ref": "#/components/responses/RequestError" },
+            },
+          "parameters":
+            [
+              {
+                "name": "sessionId",
+                "in": "path",
+                "required": true,
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+              },
+            ],
+        },
+    }
+  /api/v1/simulation-sessions/{sessionId}/start:
+    {
+      "post":
+        {
+          "operationId": "startSession",
+          "tags": ["Simulation"],
+          "summary": "start simulation session",
+          "responses":
+            {
+              "200":
+                {
+                  "description": "Committed resource snapshot.",
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema": { "$ref": "#/components/schemas/Session" },
+                        },
+                    },
+                },
+              "400": { "$ref": "#/components/responses/RequestError" },
+              "403": { "$ref": "#/components/responses/RequestError" },
+              "404": { "$ref": "#/components/responses/RequestError" },
+              "409": { "$ref": "#/components/responses/RequestError" },
+              "413": { "$ref": "#/components/responses/RequestError" },
+              "429": { "$ref": "#/components/responses/RequestError" },
+              "500": { "$ref": "#/components/responses/RequestError" },
+              "503": { "$ref": "#/components/responses/RequestError" },
+            },
+          "parameters":
+            [
+              {
+                "name": "sessionId",
+                "in": "path",
+                "required": true,
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+              },
+              {
+                "name": "Idempotency-Key",
+                "in": "header",
+                "required": true,
+                "description": "Client-generated random key; reuse only when retrying the identical request.",
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32,128}$" },
+              },
+              {
+                "name": "X-Session-Generation",
+                "in": "header",
+                "required": true,
+                "schema":
+                  { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+              },
+            ],
+          "requestBody":
+            {
+              "required": true,
+              "content":
+                {
+                  "application/json":
+                    {
+                      "schema":
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [],
+                          "properties": {},
+                        },
+                    },
+                },
+            },
+        },
+    }
+  /api/v1/simulation-sessions/{sessionId}/pause:
+    {
+      "post":
+        {
+          "operationId": "pauseSession",
+          "tags": ["Simulation"],
+          "summary": "pause simulation session",
+          "responses":
+            {
+              "200":
+                {
+                  "description": "Committed resource snapshot.",
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema": { "$ref": "#/components/schemas/Session" },
+                        },
+                    },
+                },
+              "400": { "$ref": "#/components/responses/RequestError" },
+              "403": { "$ref": "#/components/responses/RequestError" },
+              "404": { "$ref": "#/components/responses/RequestError" },
+              "409": { "$ref": "#/components/responses/RequestError" },
+              "413": { "$ref": "#/components/responses/RequestError" },
+              "429": { "$ref": "#/components/responses/RequestError" },
+              "500": { "$ref": "#/components/responses/RequestError" },
+              "503": { "$ref": "#/components/responses/RequestError" },
+            },
+          "parameters":
+            [
+              {
+                "name": "sessionId",
+                "in": "path",
+                "required": true,
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+              },
+              {
+                "name": "Idempotency-Key",
+                "in": "header",
+                "required": true,
+                "description": "Client-generated random key; reuse only when retrying the identical request.",
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32,128}$" },
+              },
+              {
+                "name": "X-Session-Generation",
+                "in": "header",
+                "required": true,
+                "schema":
+                  { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+              },
+            ],
+          "requestBody":
+            {
+              "required": true,
+              "content":
+                {
+                  "application/json":
+                    {
+                      "schema":
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [],
+                          "properties": {},
+                        },
+                    },
+                },
+            },
+        },
+    }
+  /api/v1/simulation-sessions/{sessionId}/resume:
+    {
+      "post":
+        {
+          "operationId": "resumeSession",
+          "tags": ["Simulation"],
+          "summary": "resume simulation session",
+          "responses":
+            {
+              "200":
+                {
+                  "description": "Committed resource snapshot.",
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema": { "$ref": "#/components/schemas/Session" },
+                        },
+                    },
+                },
+              "400": { "$ref": "#/components/responses/RequestError" },
+              "403": { "$ref": "#/components/responses/RequestError" },
+              "404": { "$ref": "#/components/responses/RequestError" },
+              "409": { "$ref": "#/components/responses/RequestError" },
+              "413": { "$ref": "#/components/responses/RequestError" },
+              "429": { "$ref": "#/components/responses/RequestError" },
+              "500": { "$ref": "#/components/responses/RequestError" },
+              "503": { "$ref": "#/components/responses/RequestError" },
+            },
+          "parameters":
+            [
+              {
+                "name": "sessionId",
+                "in": "path",
+                "required": true,
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+              },
+              {
+                "name": "Idempotency-Key",
+                "in": "header",
+                "required": true,
+                "description": "Client-generated random key; reuse only when retrying the identical request.",
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32,128}$" },
+              },
+              {
+                "name": "X-Session-Generation",
+                "in": "header",
+                "required": true,
+                "schema":
+                  { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+              },
+            ],
+          "requestBody":
+            {
+              "required": true,
+              "content":
+                {
+                  "application/json":
+                    {
+                      "schema":
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [],
+                          "properties": {},
+                        },
+                    },
+                },
+            },
+        },
+    }
+  /api/v1/simulation-sessions/{sessionId}/reset:
+    {
+      "post":
+        {
+          "operationId": "resetSession",
+          "tags": ["Simulation"],
+          "summary": "reset simulation session",
+          "responses":
+            {
+              "200":
+                {
+                  "description": "Committed resource snapshot.",
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema": { "$ref": "#/components/schemas/Session" },
+                        },
+                    },
+                },
+              "400": { "$ref": "#/components/responses/RequestError" },
+              "403": { "$ref": "#/components/responses/RequestError" },
+              "404": { "$ref": "#/components/responses/RequestError" },
+              "409": { "$ref": "#/components/responses/RequestError" },
+              "413": { "$ref": "#/components/responses/RequestError" },
+              "429": { "$ref": "#/components/responses/RequestError" },
+              "500": { "$ref": "#/components/responses/RequestError" },
+              "503": { "$ref": "#/components/responses/RequestError" },
+            },
+          "parameters":
+            [
+              {
+                "name": "sessionId",
+                "in": "path",
+                "required": true,
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+              },
+              {
+                "name": "Idempotency-Key",
+                "in": "header",
+                "required": true,
+                "description": "Client-generated random key; reuse only when retrying the identical request.",
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32,128}$" },
+              },
+              {
+                "name": "X-Session-Generation",
+                "in": "header",
+                "required": true,
+                "schema":
+                  { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+              },
+            ],
+          "requestBody":
+            {
+              "required": true,
+              "content":
+                {
+                  "application/json":
+                    {
+                      "schema":
+                        { "$ref": "#/components/schemas/SessionCommand" },
+                    },
+                },
+            },
+        },
+    }
+  /api/v1/simulation-sessions/{sessionId}/replay:
+    {
+      "post":
+        {
+          "operationId": "replaySession",
+          "tags": ["Simulation"],
+          "summary": "replay simulation session",
+          "responses":
+            {
+              "200":
+                {
+                  "description": "Committed resource snapshot.",
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema": { "$ref": "#/components/schemas/Session" },
+                        },
+                    },
+                },
+              "400": { "$ref": "#/components/responses/RequestError" },
+              "403": { "$ref": "#/components/responses/RequestError" },
+              "404": { "$ref": "#/components/responses/RequestError" },
+              "409": { "$ref": "#/components/responses/RequestError" },
+              "413": { "$ref": "#/components/responses/RequestError" },
+              "429": { "$ref": "#/components/responses/RequestError" },
+              "500": { "$ref": "#/components/responses/RequestError" },
+              "503": { "$ref": "#/components/responses/RequestError" },
+            },
+          "parameters":
+            [
+              {
+                "name": "sessionId",
+                "in": "path",
+                "required": true,
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+              },
+              {
+                "name": "Idempotency-Key",
+                "in": "header",
+                "required": true,
+                "description": "Client-generated random key; reuse only when retrying the identical request.",
+                "schema": { "type": "string", "pattern": "^[a-f0-9]{32,128}$" },
+              },
+              {
+                "name": "X-Session-Generation",
+                "in": "header",
+                "required": true,
+                "schema":
+                  { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+              },
+            ],
+          "requestBody":
+            {
+              "required": true,
+              "content":
+                {
+                  "application/json":
+                    {
+                      "schema":
+                        { "$ref": "#/components/schemas/SessionCommand" },
+                    },
+                },
+            },
+        },
+    }
+  /api/v1/simulation-sessions/{sessionId}/incidents:
+    get:
+      operationId: listIncidents
+      tags: [Investigation]
+      summary: List incidents detected in one session
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/IncidentStatus"
+      responses:
+        "200":
+          description: Incidents ordered by newest analysis snapshot.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Incident"
+        "400": { "$ref": "#/components/responses/RequestError" }
+        "404": { "$ref": "#/components/responses/RequestError" }
+        "503": { "$ref": "#/components/responses/RequestError" }
+  /api/v1/simulation-sessions/{sessionId}/incidents/{incidentId}:
+    get:
+      operationId: getIncident
+      tags: [Investigation]
+      summary: Get incident facts and affected services
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IncidentId"
+      responses:
+        "200":
+          description: Persisted incident snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+        "404": { "$ref": "#/components/responses/RequestError" }
+        "503": { "$ref": "#/components/responses/RequestError" }
+  /api/v1/simulation-sessions/{sessionId}/incidents/{incidentId}/timeline:
+    get:
+      operationId: getIncidentTimeline
+      tags: [Investigation]
+      summary: Get the curated incident timeline
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IncidentId"
+      responses:
+        "200":
+          description: Evidence-backed entries ordered by simulation time.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    maxItems: 10
+                    items:
+                      $ref: "#/components/schemas/TimelineEntry"
+        "404": { "$ref": "#/components/responses/RequestError" }
+        "503": { "$ref": "#/components/responses/RequestError" }
+  /api/v1/simulation-sessions/{sessionId}/incidents/{incidentId}/evidence:
+    get:
+      operationId: getIncidentEvidence
+      tags: [Investigation]
+      summary: Get selected evidence ordered by correlation rank
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IncidentId"
+      responses:
+        "200":
+          description: Selected evidence with scores, reasons and source telemetry.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    minItems: 1
+                    maxItems: 10
+                    items:
+                      $ref: "#/components/schemas/Evidence"
+        "404": { "$ref": "#/components/responses/RequestError" }
+        "503": { "$ref": "#/components/responses/RequestError" }
+  /api/v1/simulation-sessions/{sessionId}/incidents/{incidentId}/investigation-context:
+    get:
+      operationId: getInvestigationContext
+      tags: [Investigation]
+      summary: Get bounded context used by analysis modes
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IncidentId"
+      responses:
+        "200":
+          description: Curated context without hidden scenario expectations.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvestigationContext"
+        "404": { "$ref": "#/components/responses/RequestError" }
+        "503": { "$ref": "#/components/responses/RequestError" }
+  /api/v1/simulation-sessions/{sessionId}/incidents/{incidentId}/analyses/standard:
+    get:
+      operationId: getStandardAnalysis
+      tags: [Investigation]
+      summary: Get deterministic evidence-led analysis
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/IncidentId"
+      responses:
+        "200":
+          description: Standard Analysis generated atomically with selected evidence.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "404": { "$ref": "#/components/responses/RequestError" }
+        "503": { "$ref": "#/components/responses/RequestError" }
 components:
+  parameters:
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[a-f0-9]{32}$"
+    IncidentId:
+      name: incidentId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[a-f0-9]{32}$"
   responses:
     RequestError:
       description: Safe request error. The server generates a fresh X-Request-Id and never reflects request metadata.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
   schemas:
+    SessionRevision:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, sessionId, generation, sequence, simulationTimeMs, occurredAt]
+      properties:
+        schemaVersion: { type: string, enum: ['1'] }
+        sessionId: { type: string, pattern: '^[a-f0-9]{32}$' }
+        generation: { type: integer, minimum: 1 }
+        sequence: { type: integer, minimum: 1, maximum: 9007199254740991 }
+        simulationTimeMs: { type: integer, minimum: 0 }
+        occurredAt: { type: string, format: date-time }
+    SessionOverview:
+      type: object
+      additionalProperties: false
+      required: [sessionId, generation, status, simulationTimeMs, services, incidents, deployments]
+      properties:
+        sessionId: { type: string, pattern: '^[a-f0-9]{32}$' }
+        generation: { type: integer, minimum: 1 }
+        status: { type: string, enum: [idle, running, paused, completed] }
+        simulationTimeMs: { type: integer, minimum: 0 }
+        services:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, displayName, status, metrics]
+            properties:
+              id: { type: string }
+              displayName: { type: string }
+              status: { type: string, enum: [healthy, degraded, unavailable] }
+              metrics:
+                type: array
+                items: { $ref: '#/components/schemas/MetricPayload' }
+        incidents:
+          type: array
+          items: { $ref: '#/components/schemas/Incident' }
+        deployments:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            additionalProperties: false
+            required: [serviceId, simulationTimeMs, version, status]
+            properties:
+              serviceId: { type: string }
+              simulationTimeMs: { type: integer, minimum: 0 }
+              version: { type: string }
+              status: { type: string }
+    ScenarioSummary:
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required":
+          [
+            "id",
+            "version",
+            "title",
+            "description",
+            "durationSeconds",
+            "defaultSeed",
+          ],
+        "properties":
+          {
+            "id": { "type": "string", "maxLength": 64 },
+            "version":
+              { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "durationSeconds":
+              { "type": "integer", "minimum": 1, "maximum": 600 },
+            "defaultSeed":
+              { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          },
+      }
+    ScenarioService:
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required":
+          ["id", "displayName", "type", "criticality", "initialStatus"],
+        "properties":
+          {
+            "id": { "type": "string" },
+            "displayName": { "type": "string" },
+            "type":
+              {
+                "type": "string",
+                "enum": ["api", "worker", "database", "external"],
+              },
+            "criticality":
+              { "type": "string", "enum": ["low", "medium", "high"] },
+            "initialStatus":
+              {
+                "type": "string",
+                "enum": ["healthy", "degraded", "unavailable"],
+              },
+            "initialVersion": { "type": "string" },
+          },
+      }
+    ScenarioDependency:
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sourceServiceId", "targetServiceId", "relationship"],
+        "properties":
+          {
+            "sourceServiceId": { "type": "string" },
+            "targetServiceId": { "type": "string" },
+            "relationship":
+              {
+                "type": "string",
+                "enum":
+                  [
+                    "calls",
+                    "reads_from",
+                    "writes_to",
+                    "publishes_to",
+                    "consumes_from",
+                  ],
+              },
+          },
+      }
+    Session:
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required":
+          [
+            "id",
+            "scenarioId",
+            "scenarioVersion",
+            "seed",
+            "generation",
+            "status",
+            "simulationTimeMs",
+            "createdAt",
+            "expiresAt",
+          ],
+        "properties":
+          {
+            "id": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+            "scenarioId": { "type": "string" },
+            "scenarioVersion":
+              { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+            "seed":
+              { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+            "generation":
+              { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+            "status":
+              {
+                "type": "string",
+                "enum": ["idle", "running", "paused", "completed"],
+              },
+            "simulationTimeMs":
+              { "type": "integer", "minimum": 0, "maximum": 600000 },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "startedAt": { "type": "string", "format": "date-time" },
+            "completedAt": { "type": "string", "format": "date-time" },
+            "expiresAt": { "type": "string", "format": "date-time" },
+          },
+      }
+    CreateSession:
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenarioId"],
+        "properties":
+          {
+            "scenarioId": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "scenarioVersion":
+              { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+            "seed":
+              { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          },
+      }
+    SessionCommand:
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties":
+          {
+            "seed":
+              { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          },
+      }
+    ScenarioDetail:
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required":
+          [
+            "id",
+            "version",
+            "title",
+            "description",
+            "durationSeconds",
+            "defaultSeed",
+            "services",
+            "dependencies",
+            "speedMultiplier",
+          ],
+        "properties":
+          {
+            "id": { "type": "string", "maxLength": 64 },
+            "version":
+              { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "durationSeconds":
+              { "type": "integer", "minimum": 1, "maximum": 600 },
+            "defaultSeed":
+              { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+            "services":
+              {
+                "type": "array",
+                "maxItems": 5,
+                "items": { "$ref": "#/components/schemas/ScenarioService" },
+              },
+            "dependencies":
+              {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/ScenarioDependency" },
+              },
+            "speedMultiplier":
+              { "type": "integer", "minimum": 1, "maximum": 20 },
+          },
+      }
+    IncidentStatus:
+      type: string
+      enum: [active, recovering, resolved]
+    IncidentTrigger:
+      type: object
+      additionalProperties: false
+      required: [ruleId, metric, observedValue, threshold, explanation]
+      properties:
+        ruleId: { type: string, minLength: 1, maxLength: 128 }
+        metric: { type: string, minLength: 1, maxLength: 128 }
+        observedValue: { type: number }
+        threshold: { type: number }
+        explanation: { type: string, minLength: 1, maxLength: 1000 }
+    Incident:
+      type: object
+      additionalProperties: false
+      required: [id, sessionId, generation, title, severity, status, startedAt, detectedAt, primaryServiceId, affectedServiceIds, trigger]
+      properties:
+        id: { type: string, pattern: "^[a-f0-9]{32}$" }
+        sessionId: { type: string, pattern: "^[a-f0-9]{32}$" }
+        generation: { type: integer, minimum: 1, maximum: 2147483647 }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        severity: { type: string, enum: [P1, P2, P3, P4] }
+        status: { $ref: "#/components/schemas/IncidentStatus" }
+        startedAt: { type: string, format: date-time }
+        detectedAt: { type: string, format: date-time }
+        resolvedAt: { type: string, format: date-time }
+        primaryServiceId: { type: string, minLength: 1 }
+        affectedServiceIds:
+          type: array
+          minItems: 1
+          maxItems: 5
+          uniqueItems: true
+          items: { type: string }
+        trigger: { $ref: "#/components/schemas/IncidentTrigger" }
+    LogPayload:
+      type: object
+      additionalProperties: false
+      required: [severity, message]
+      properties:
+        severity: { type: string, enum: [debug, info, warning, error, critical] }
+        message: { type: string }
+    MetricPayload:
+      type: object
+      additionalProperties: false
+      required: [metric, value, unit]
+      properties:
+        metric: { type: string }
+        value: { type: number }
+        unit: { type: string }
+    DeploymentPayload:
+      type: object
+      additionalProperties: false
+      required: [version, status]
+      properties:
+        version: { type: string }
+        previousVersion: { type: string }
+        status: { type: string, enum: [started, completed, failed] }
+    ErrorPayload:
+      type: object
+      additionalProperties: false
+      required: [severity, message]
+      properties:
+        severity: { type: string, enum: [debug, info, warning, error, critical] }
+        code: { type: string }
+        message: { type: string }
+    StatePayload:
+      type: object
+      additionalProperties: false
+      required: [previousStatus, currentStatus]
+      properties:
+        previousStatus: { type: string, enum: [healthy, degraded, unavailable] }
+        currentStatus: { type: string, enum: [healthy, degraded, unavailable] }
+    JobPayload:
+      type: object
+      additionalProperties: false
+      required: [jobName, reason]
+      properties:
+        jobName: { type: string }
+        reason: { type: string }
+    TelemetryEvent:
+      oneOf:
+        - $ref: "#/components/schemas/LogTelemetryEvent"
+        - $ref: "#/components/schemas/MetricTelemetryEvent"
+        - $ref: "#/components/schemas/DeploymentTelemetryEvent"
+        - $ref: "#/components/schemas/ErrorTelemetryEvent"
+        - $ref: "#/components/schemas/StateTelemetryEvent"
+        - $ref: "#/components/schemas/JobTelemetryEvent"
+      discriminator:
+        propertyName: kind
+        mapping:
+          log: "#/components/schemas/LogTelemetryEvent"
+          metric: "#/components/schemas/MetricTelemetryEvent"
+          deployment: "#/components/schemas/DeploymentTelemetryEvent"
+          error: "#/components/schemas/ErrorTelemetryEvent"
+          service_state: "#/components/schemas/StateTelemetryEvent"
+          job_failure: "#/components/schemas/JobTelemetryEvent"
+    TelemetryEventBase:
+      type: object
+      required: [id, sessionId, generation, sequence, timestamp, environment, offsetMs, serviceId]
+      properties:
+        id: { type: string, pattern: "^[a-f0-9]{32}$" }
+        sessionId: { type: string, pattern: "^[a-f0-9]{32}$" }
+        generation: { type: integer, minimum: 1 }
+        sequence: { type: integer, minimum: 1 }
+        timestamp: { type: string, format: date-time }
+        environment: { type: string, enum: [simulation] }
+        fixtureKey: { type: string }
+        offsetMs: { type: integer, minimum: 0, maximum: 600000 }
+        serviceId: { type: string }
+    LogTelemetryEvent:
+      allOf:
+        - $ref: "#/components/schemas/TelemetryEventBase"
+        - type: object
+          required: [kind, payload]
+          properties:
+            kind: { type: string, enum: [log] }
+            payload: { $ref: "#/components/schemas/LogPayload" }
+    MetricTelemetryEvent:
+      allOf:
+        - $ref: "#/components/schemas/TelemetryEventBase"
+        - type: object
+          required: [kind, payload]
+          properties:
+            kind: { type: string, enum: [metric] }
+            payload: { $ref: "#/components/schemas/MetricPayload" }
+    DeploymentTelemetryEvent:
+      allOf:
+        - $ref: "#/components/schemas/TelemetryEventBase"
+        - type: object
+          required: [kind, payload]
+          properties:
+            kind: { type: string, enum: [deployment] }
+            payload: { $ref: "#/components/schemas/DeploymentPayload" }
+    ErrorTelemetryEvent:
+      allOf:
+        - $ref: "#/components/schemas/TelemetryEventBase"
+        - type: object
+          required: [kind, payload]
+          properties:
+            kind: { type: string, enum: [error] }
+            payload: { $ref: "#/components/schemas/ErrorPayload" }
+    StateTelemetryEvent:
+      allOf:
+        - $ref: "#/components/schemas/TelemetryEventBase"
+        - type: object
+          required: [kind, payload]
+          properties:
+            kind: { type: string, enum: [service_state] }
+            payload: { $ref: "#/components/schemas/StatePayload" }
+    JobTelemetryEvent:
+      allOf:
+        - $ref: "#/components/schemas/TelemetryEventBase"
+        - type: object
+          required: [kind, payload]
+          properties:
+            kind: { type: string, enum: [job_failure] }
+            payload: { $ref: "#/components/schemas/JobPayload" }
+    CorrelationScore:
+      type: object
+      additionalProperties: false
+      required: [temporalScore, serviceScore, dependencyScore, anomalyScore, eventTypeScore, precedenceScore, totalScore]
+      properties:
+        temporalScore: { type: number, minimum: 0, maximum: 1 }
+        serviceScore: { type: number, minimum: 0, maximum: 1 }
+        dependencyScore: { type: number, minimum: 0, maximum: 1 }
+        anomalyScore: { type: number, minimum: 0, maximum: 1 }
+        eventTypeScore: { type: number, minimum: 0, maximum: 1 }
+        precedenceScore: { type: number, minimum: 0, maximum: 1 }
+        totalScore: { type: number, minimum: 0, maximum: 1 }
+    CorrelationReason:
+      type: object
+      additionalProperties: false
+      required: [type, description, contribution]
+      properties:
+        type: { type: string }
+        description: { type: string }
+        contribution: { type: number, minimum: 0, maximum: 1 }
+    Evidence:
+      type: object
+      additionalProperties: false
+      required: [id, incidentId, sourceEvent, rank, title, description, correlation, reasons, scoringVersion]
+      properties:
+        id: { type: string, pattern: "^[a-f0-9]{32}$" }
+        incidentId: { type: string, pattern: "^[a-f0-9]{32}$" }
+        sourceEvent: { $ref: "#/components/schemas/TelemetryEvent" }
+        rank: { type: integer, minimum: 1, maximum: 10 }
+        title: { type: string }
+        description: { type: string }
+        correlation: { $ref: "#/components/schemas/CorrelationScore" }
+        reasons:
+          type: array
+          minItems: 1
+          maxItems: 6
+          items: { $ref: "#/components/schemas/CorrelationReason" }
+        scoringVersion: { type: string }
+    TimelineEntry:
+      type: object
+      additionalProperties: false
+      required: [eventId, simulationOffsetMs, title, description]
+      properties:
+        eventId: { type: string, pattern: "^[a-f0-9]{32}$" }
+        simulationOffsetMs: { type: integer, minimum: 0, maximum: 600000 }
+        title: { type: string }
+        description: { type: string }
+    MetricSummary:
+      type: object
+      additionalProperties: false
+      required: [serviceId, metric, unit, minimum, maximum, latest]
+      properties:
+        serviceId: { type: string }
+        metric: { type: string }
+        unit: { type: string }
+        minimum: { type: number }
+        maximum: { type: number }
+        latest: { type: number }
+    InvestigationContext:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, incident, services, dependencies, metricSummaries, timeline, evidence]
+      properties:
+        schemaVersion: { type: string, enum: ["1"] }
+        incident: { $ref: "#/components/schemas/Incident" }
+        services:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items: { $ref: "#/components/schemas/ScenarioService" }
+        dependencies:
+          type: array
+          items: { $ref: "#/components/schemas/ScenarioDependency" }
+        metricSummaries:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/MetricSummary" }
+        timeline:
+          type: array
+          maxItems: 10
+          items: { $ref: "#/components/schemas/TimelineEntry" }
+        evidence:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items: { $ref: "#/components/schemas/Evidence" }
+    EvidenceRelationship:
+      type: object
+      additionalProperties: false
+      required: [evidenceId, relationship]
+      properties:
+        evidenceId: { type: string, pattern: "^[a-f0-9]{32}$" }
+        relationship: { type: string, enum: [supporting, contradictory] }
+    Hypothesis:
+      type: object
+      additionalProperties: false
+      required: [id, title, summary, evidenceScore, evidence]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        evidenceScore: { type: number, minimum: 0, maximum: 1 }
+        evidence:
+          type: array
+          items: { $ref: "#/components/schemas/EvidenceRelationship" }
+    Recommendation:
+      type: object
+      additionalProperties: false
+      required: [id, title, rationale, priority]
+      properties:
+        id: { type: string }
+        hypothesisId: { type: string }
+        title: { type: string }
+        rationale: { type: string }
+        priority: { type: string, enum: [now, next, later] }
+    AnalysisResult:
+      type: object
+      additionalProperties: false
+      required: [id, incidentId, contextSchemaVersion, engineVersion, mode, summary, hypotheses, recommendedActions, warnings, createdAt]
+      properties:
+        id: { type: string, pattern: "^[a-f0-9]{32}$" }
+        incidentId: { type: string, pattern: "^[a-f0-9]{32}$" }
+        contextSchemaVersion: { type: string, enum: ["1"] }
+        engineVersion: { type: string }
+        mode: { type: string, enum: [standard] }
+        summary: { type: string }
+        hypotheses:
+          type: array
+          items: { $ref: "#/components/schemas/Hypothesis" }
+        recommendedActions:
+          type: array
+          items: { $ref: "#/components/schemas/Recommendation" }
+        warnings:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
     SystemStatus:
       oneOf:
-        - $ref: '#/components/schemas/ReadySystem'
-        - $ref: '#/components/schemas/UnavailableSystem'
+        - $ref: "#/components/schemas/ReadySystem"
+        - $ref: "#/components/schemas/UnavailableSystem"
       discriminator:
         propertyName: status
         mapping:
-          ready: '#/components/schemas/ReadySystem'
-          unavailable: '#/components/schemas/UnavailableSystem'
+          ready: "#/components/schemas/ReadySystem"
+          unavailable: "#/components/schemas/UnavailableSystem"
     ReadySystem:
       type: object
       additionalProperties: false
@@ -126,10 +1369,26 @@ components:
           properties:
             code:
               type: string
-              enum: [INVALID_REQUEST, NOT_FOUND, ORIGIN_NOT_ALLOWED, INTERNAL_ERROR]
+              enum:
+                [
+                  INVALID_REQUEST,
+                  NOT_FOUND,
+                  ORIGIN_NOT_ALLOWED,
+                  INTERNAL_ERROR,
+                  SCENARIO_NOT_FOUND,
+                  SESSION_NOT_FOUND,
+                  INCIDENT_NOT_FOUND,
+                  INVALID_SEED,
+                  INVALID_SESSION_STATE,
+                  STALE_SESSION_GENERATION,
+                  IDEMPOTENCY_CONFLICT,
+                  RATE_LIMITED,
+                  SESSION_LIMIT_REACHED,
+                  DEPENDENCY_UNAVAILABLE,
+                ]
             message:
               type: string
               maxLength: 256
             requestId:
               type: string
-              pattern: '^[a-f0-9]{32}$'
+              pattern: "^[a-f0-9]{32}$"
