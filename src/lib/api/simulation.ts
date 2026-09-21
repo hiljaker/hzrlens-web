@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getApiOrigin } from "./api-origin.ts";
+import { httpClient } from "./http-client.ts";
 import type { components } from "./generated";
 
 export type SessionCommand = "start" | "pause" | "resume" | "reset" | "replay";
@@ -139,7 +140,7 @@ const analysisSchema = contractSchema<
     incidentId: identifier,
     contextSchemaVersion: z.literal("1"),
     engineVersion: z.string(),
-    mode: z.literal("standard"),
+    mode: z.enum(["standard", "local", "advanced"]),
     summary: z.string(),
     hypotheses: z.array(
       z.strictObject({
@@ -223,29 +224,41 @@ async function request<T>(
   path: string,
   signal: AbortSignal,
   schema: z.ZodType<T>,
-  init?: RequestInit,
+  init?: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+  },
 ): Promise<T> {
-  let response: Response;
+  const origin = getApiOrigin();
+  let response;
   try {
-    response = await fetch(`${getApiOrigin()}${path}`, {
-      ...init,
+    response = await httpClient.request({
+      url: `${origin}${path}`,
+      method: init?.method ?? "GET",
+      data: init?.body,
+      headers: {
+        Accept: "application/json",
+        ...init?.headers,
+      },
       signal: AbortSignal.any([signal, AbortSignal.timeout(8_000)]),
-      cache: "no-store",
-      credentials: "omit",
-      headers: { Accept: "application/json", ...init?.headers },
+      responseType: "text",
     });
   } catch (error) {
     if (signal.aborted) throw error;
     throw new Error("The simulation API could not be reached.");
   }
-  if (!response.ok) {
+  if (response.status < 200 || response.status >= 300) {
     throw new Error(
       `The simulation API rejected the request (${response.status}).`,
     );
   }
   let payload: unknown;
   try {
-    payload = await response.json();
+    payload =
+      typeof response.data === "string"
+        ? JSON.parse(response.data)
+        : response.data;
   } catch {
     throw new Error("The simulation API returned unreadable JSON.");
   }
@@ -352,5 +365,77 @@ export function fetchAnalysis(
     `/api/v1/simulation-sessions/${sessionId}/incidents/${incidentId}/analyses/standard`,
     signal,
     analysisSchema,
+  );
+}
+
+const investigationContextSchema = contractSchema<
+  components["schemas"]["InvestigationContext"]
+>()(
+  z.strictObject({
+    schemaVersion: z.literal("1"),
+    incident: incidentSchema,
+    services: z
+      .array(
+        z.strictObject({
+          id: z.string(),
+          displayName: z.string(),
+          type: z.enum(["api", "worker", "database", "external"]),
+          criticality: z.enum(["low", "medium", "high"]),
+          initialStatus: z.enum(["healthy", "degraded", "unavailable"]),
+          initialVersion: z.string().optional(),
+        }),
+      )
+      .min(1)
+      .max(5),
+    dependencies: z.array(
+      z.strictObject({
+        sourceServiceId: z.string(),
+        targetServiceId: z.string(),
+        relationship: z.enum([
+          "calls",
+          "reads_from",
+          "writes_to",
+          "publishes_to",
+          "consumes_from",
+        ]),
+      }),
+    ),
+    metricSummaries: z
+      .array(
+        z.strictObject({
+          serviceId: z.string(),
+          metric: z.string(),
+          unit: z.string(),
+          minimum: z.number(),
+          maximum: z.number(),
+          latest: z.number(),
+        }),
+      )
+      .max(20),
+    timeline: z
+      .array(
+        z.strictObject({
+          eventId: identifier,
+          simulationOffsetMs: z.number().int().nonnegative().max(600_000),
+          title: z.string(),
+          description: z.string(),
+        }),
+      )
+      .max(10),
+    evidence: z.array(evidenceSchema).min(1).max(10),
+  }),
+);
+
+export type InvestigationContext = z.output<typeof investigationContextSchema>;
+
+export function fetchContext(
+  sessionId: string,
+  incidentId: string,
+  signal: AbortSignal,
+): Promise<InvestigationContext> {
+  return request(
+    `/api/v1/simulation-sessions/${sessionId}/incidents/${incidentId}/investigation-context`,
+    signal,
+    investigationContextSchema,
   );
 }

@@ -642,7 +642,7 @@ export interface components {
             contextSchemaVersion: "1";
             engineVersion: string;
             /** @enum {string} */
-            mode: "standard";
+            mode: "standard" | "local" | "advanced";
             summary: string;
             hypotheses: components["schemas"]["Hypothesis"][];
             recommendedActions: components["schemas"]["Recommendation"][];

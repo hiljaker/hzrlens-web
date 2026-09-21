@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { components } from "./generated";
 import { getApiOrigin } from "./api-origin.ts";
+import { httpClient } from "./http-client.ts";
 
 type SystemStatus = components["schemas"]["SystemStatus"];
 const systemStatusSchema: z.ZodType<SystemStatus> = z.discriminatedUnion(
@@ -24,13 +25,15 @@ const systemStatusSchema: z.ZodType<SystemStatus> = z.discriminatedUnion(
 export async function fetchSystemStatus(
   signal: AbortSignal,
 ): Promise<SystemStatus> {
-  let response: Response;
+  const origin = getApiOrigin();
+  let response;
   try {
-    response = await fetch(`${getApiOrigin()}/api/v1/system/status`, {
+    response = await httpClient.request({
+      url: `${origin}/api/v1/system/status`,
+      method: "GET",
       signal: AbortSignal.any([signal, AbortSignal.timeout(5_000)]),
-      cache: "no-store",
-      credentials: "omit",
       headers: { Accept: "application/json" },
+      responseType: "text",
     });
   } catch (error) {
     if (signal.aborted) throw error;
@@ -49,7 +52,10 @@ export async function fetchSystemStatus(
     );
   let payload: unknown;
   try {
-    payload = await response.json();
+    payload =
+      typeof response.data === "string"
+        ? JSON.parse(response.data)
+        : response.data;
   } catch {
     throw new Error(
       "The API returned unreadable JSON. Check the API response and deployment proxy.",

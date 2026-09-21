@@ -1,22 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import ChecklistOutlined from "@mui/icons-material/ChecklistOutlined";
 import FactCheckOutlined from "@mui/icons-material/FactCheckOutlined";
+import MemoryOutlined from "@mui/icons-material/MemoryOutlined";
 import RuleOutlined from "@mui/icons-material/RuleOutlined";
 import SpeedOutlined from "@mui/icons-material/SpeedOutlined";
 import WarningAmber from "@mui/icons-material/WarningAmber";
 import {
   fetchAnalysis,
+  fetchContext,
   fetchEvidence,
   type Incident,
 } from "@/lib/api/simulation";
+import { LocalAiPanel } from "../local-ai/local-ai-panel";
+import { useLocalAi } from "../local-ai/use-local-ai";
 
 export function InvestigationPanel({
   sessionId,
@@ -37,6 +44,16 @@ export function InvestigationPanel({
     queryFn: ({ signal }) => fetchAnalysis(sessionId, incident.id, signal),
     refetchInterval: isConnected ? false : 5_000,
   });
+  const contextQuery = useQuery({
+    queryKey: ["investigation-context", sessionId, incident.id],
+    queryFn: ({ signal }) => fetchContext(sessionId, incident.id, signal),
+    refetchInterval: isConnected ? false : 10_000,
+  });
+
+  const [analysisMode, setAnalysisMode] = useState<"standard" | "local">(
+    "standard",
+  );
+  const localAi = useLocalAi(contextQuery.data);
 
   return (
     <Box component="section" aria-labelledby="incident-heading" sx={{ mt: 4 }}>
@@ -222,94 +239,145 @@ export function InvestigationPanel({
             borderRadius: 3,
           }}
         >
-          <Stack direction="row" sx={{ alignItems: "center", gap: 1, mb: 2 }}>
-            <RuleOutlined
-              sx={{ color: "primary.main", fontSize: 20 }}
-              aria-hidden="true"
+          {/* Analysis Mode Switcher */}
+          <Tabs
+            value={analysisMode}
+            onChange={(_, val: "standard" | "local") => setAnalysisMode(val)}
+            sx={{
+              mb: 2.5,
+              minHeight: 40,
+              borderBottom: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Tab
+              label="Standard Analysis"
+              value="standard"
+              icon={<RuleOutlined sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              sx={{
+                minHeight: 40,
+                py: 0.5,
+                textTransform: "none",
+                fontWeight: 600,
+              }}
             />
-            <Typography variant="h3" sx={{ fontSize: 18 }}>
-              Standard Analysis
-            </Typography>
-          </Stack>
-          {analysisQuery.isPending && (
-            <Box role="status" aria-live="polite">
-              <Typography color="text.secondary">
-                Building hypotheses from evidence…
-              </Typography>
-            </Box>
-          )}
-          {analysisQuery.data && (
+            <Tab
+              label="Local AI (On-Device)"
+              value="local"
+              icon={<MemoryOutlined sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              sx={{
+                minHeight: 40,
+                py: 0.5,
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+            />
+          </Tabs>
+
+          {analysisMode === "local" ? (
+            <LocalAiPanel
+              context={contextQuery.data}
+              standardAnalysis={analysisQuery.data}
+              localAi={localAi}
+              onViewStandard={() => setAnalysisMode("standard")}
+            />
+          ) : (
             <>
-              <Typography color="text.secondary">
-                {analysisQuery.data.summary}
-              </Typography>
-              <Stack divider={<Divider flexItem />} sx={{ mt: 2 }}>
-                {analysisQuery.data.hypotheses.map((hypothesis) => {
-                  const contradictions = hypothesis.evidence.filter(
-                    (item) => item.relationship === "contradictory",
-                  ).length;
-                  return (
-                    <Box key={hypothesis.id} sx={{ py: 2.25 }}>
-                      <Stack
-                        direction="row"
-                        sx={{ justifyContent: "space-between", gap: 2 }}
-                      >
-                        <Typography sx={{ fontWeight: 700 }}>
-                          {hypothesis.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {Math.round(hypothesis.evidenceScore * 100)}%
-                        </Typography>
-                      </Stack>
-                      <Typography variant="body2" sx={{ mt: 0.75 }}>
-                        {hypothesis.summary}
-                      </Typography>
-                      {contradictions > 0 && (
-                        <Stack
-                          direction="row"
-                          sx={{ alignItems: "center", gap: 0.5, mt: 0.75 }}
-                        >
-                          <WarningAmber
-                            sx={{ fontSize: 15, color: "warning.main" }}
-                            aria-hidden="true"
-                          />
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "warning.main", fontWeight: 700 }}
-                          >
-                            {contradictions} contradictory evidence{" "}
-                            {contradictions > 1 ? "items" : "item"}
-                          </Typography>
-                        </Stack>
-                      )}
-                    </Box>
-                  );
-                })}
-              </Stack>
               <Stack
                 direction="row"
-                sx={{ alignItems: "center", gap: 1, mt: 4, mb: 1.5 }}
+                sx={{ alignItems: "center", gap: 1, mb: 2 }}
               >
-                <ChecklistOutlined
+                <RuleOutlined
                   sx={{ color: "primary.main", fontSize: 20 }}
                   aria-hidden="true"
                 />
                 <Typography variant="h3" sx={{ fontSize: 18 }}>
-                  Next checks
+                  Standard Analysis
                 </Typography>
               </Stack>
-              <Stack component="ol" sx={{ pl: 2.5, m: 0, gap: 1.5 }}>
-                {analysisQuery.data.recommendedActions.map((action) => (
-                  <Box component="li" key={action.id}>
-                    <Typography sx={{ fontWeight: 700 }}>
-                      {action.title}
+              {analysisQuery.isPending && (
+                <Box role="status" aria-live="polite">
+                  <Typography color="text.secondary">
+                    Building hypotheses from evidence…
+                  </Typography>
+                </Box>
+              )}
+              {analysisQuery.data && (
+                <>
+                  <Typography color="text.secondary">
+                    {analysisQuery.data.summary}
+                  </Typography>
+                  <Stack divider={<Divider flexItem />} sx={{ mt: 2 }}>
+                    {analysisQuery.data.hypotheses.map((hypothesis) => {
+                      const contradictions = hypothesis.evidence.filter(
+                        (item) => item.relationship === "contradictory",
+                      ).length;
+                      return (
+                        <Box key={hypothesis.id} sx={{ py: 2.25 }}>
+                          <Stack
+                            direction="row"
+                            sx={{ justifyContent: "space-between", gap: 2 }}
+                          >
+                            <Typography sx={{ fontWeight: 700 }}>
+                              {hypothesis.title}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {Math.round(hypothesis.evidenceScore * 100)}%
+                            </Typography>
+                          </Stack>
+                          <Typography variant="body2" sx={{ mt: 0.75 }}>
+                            {hypothesis.summary}
+                          </Typography>
+                          {contradictions > 0 && (
+                            <Stack
+                              direction="row"
+                              sx={{ alignItems: "center", gap: 0.5, mt: 0.75 }}
+                            >
+                              <WarningAmber
+                                sx={{ fontSize: 15, color: "warning.main" }}
+                                aria-hidden="true"
+                              />
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "warning.main", fontWeight: 700 }}
+                              >
+                                {contradictions} contradictory evidence{" "}
+                                {contradictions > 1 ? "items" : "item"}
+                              </Typography>
+                            </Stack>
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                  <Stack
+                    direction="row"
+                    sx={{ alignItems: "center", gap: 1, mt: 4, mb: 1.5 }}
+                  >
+                    <ChecklistOutlined
+                      sx={{ color: "primary.main", fontSize: 20 }}
+                      aria-hidden="true"
+                    />
+                    <Typography variant="h3" sx={{ fontSize: 18 }}>
+                      Next checks
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {action.rationale}
-                    </Typography>
-                  </Box>
-                ))}
-              </Stack>
+                  </Stack>
+                  <Stack component="ol" sx={{ pl: 2.5, m: 0, gap: 1.5 }}>
+                    {analysisQuery.data.recommendedActions.map((action) => (
+                      <Box component="li" key={action.id}>
+                        <Typography sx={{ fontWeight: 700 }}>
+                          {action.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {action.rationale}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                </>
+              )}
             </>
           )}
         </Box>

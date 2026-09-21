@@ -24,46 +24,46 @@ paths:
       tags: [Simulation]
       summary: Read a consistent session dashboard
       parameters:
-        - $ref: '#/components/parameters/SessionId'
+        - $ref: "#/components/parameters/SessionId"
       responses:
-        '200':
+        "200":
           description: Current generation, service metrics, incidents and five recent deployments. Metrics are per-service; cross-service aggregates are not inferred.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SessionOverview'
-        '404':
-          $ref: '#/components/responses/RequestError'
-        '503':
-          $ref: '#/components/responses/RequestError'
+                $ref: "#/components/schemas/SessionOverview"
+        "404":
+          $ref: "#/components/responses/RequestError"
+        "503":
+          $ref: "#/components/responses/RequestError"
   /api/v1/simulation-sessions/{sessionId}/events:
     get:
       operationId: streamSessionRevisions
       tags: [Simulation]
       summary: Subscribe to committed session revisions
-      description: 'session.updated invalidates all session REST snapshots. IDs are sessionId:sequence. Retains 512 revisions across resets; unknown, future or expired cursors emit stream.resync_required then close. Clients refetch and reconnect without the cursor. Heartbeat every 15 seconds; connections rotate after five minutes. At most three connections/session and 100/process.'
+      description: "session.updated invalidates all session REST snapshots. IDs are sessionId:sequence. Retains 512 revisions across resets; unknown, future or expired cursors emit stream.resync_required then close. Clients refetch and reconnect without the cursor. Heartbeat every 15 seconds; connections rotate after five minutes. At most three connections/session and 100/process."
       parameters:
-        - $ref: '#/components/parameters/SessionId'
+        - $ref: "#/components/parameters/SessionId"
         - in: header
           name: Last-Event-ID
           schema:
             type: string
-            pattern: '^[a-f0-9]{32}:[1-9][0-9]*$'
+            pattern: "^[a-f0-9]{32}:[1-9][0-9]*$"
       responses:
-        '200':
+        "200":
           description: SSE session.updated JSON uses SessionRevision; stream.heartbeat and stream.resync_required carry an empty object and no ID.
           content:
             text/event-stream:
               schema:
                 type: string
-        '400':
-          $ref: '#/components/responses/RequestError'
-        '404':
-          $ref: '#/components/responses/RequestError'
-        '429':
-          $ref: '#/components/responses/RequestError'
-        '503':
-          $ref: '#/components/responses/RequestError'
+        "400":
+          $ref: "#/components/responses/RequestError"
+        "404":
+          $ref: "#/components/responses/RequestError"
+        "429":
+          $ref: "#/components/responses/RequestError"
+        "503":
+          $ref: "#/components/responses/RequestError"
   /healthz:
     get:
       operationId: getLiveness
@@ -795,10 +795,18 @@ components:
     SessionRevision:
       type: object
       additionalProperties: false
-      required: [schemaVersion, sessionId, generation, sequence, simulationTimeMs, occurredAt]
+      required:
+        [
+          schemaVersion,
+          sessionId,
+          generation,
+          sequence,
+          simulationTimeMs,
+          occurredAt,
+        ]
       properties:
-        schemaVersion: { type: string, enum: ['1'] }
-        sessionId: { type: string, pattern: '^[a-f0-9]{32}$' }
+        schemaVersion: { type: string, enum: ["1"] }
+        sessionId: { type: string, pattern: "^[a-f0-9]{32}$" }
         generation: { type: integer, minimum: 1 }
         sequence: { type: integer, minimum: 1, maximum: 9007199254740991 }
         simulationTimeMs: { type: integer, minimum: 0 }
@@ -806,9 +814,18 @@ components:
     SessionOverview:
       type: object
       additionalProperties: false
-      required: [sessionId, generation, status, simulationTimeMs, services, incidents, deployments]
+      required:
+        [
+          sessionId,
+          generation,
+          status,
+          simulationTimeMs,
+          services,
+          incidents,
+          deployments,
+        ]
       properties:
-        sessionId: { type: string, pattern: '^[a-f0-9]{32}$' }
+        sessionId: { type: string, pattern: "^[a-f0-9]{32}$" }
         generation: { type: integer, minimum: 1 }
         status: { type: string, enum: [idle, running, paused, completed] }
         simulationTimeMs: { type: integer, minimum: 0 }
@@ -824,10 +841,10 @@ components:
               status: { type: string, enum: [healthy, degraded, unavailable] }
               metrics:
                 type: array
-                items: { $ref: '#/components/schemas/MetricPayload' }
+                items: { $ref: "#/components/schemas/MetricPayload" }
         incidents:
           type: array
-          items: { $ref: '#/components/schemas/Incident' }
+          items: { $ref: "#/components/schemas/Incident" }
         deployments:
           type: array
           maxItems: 5
@@ -1036,7 +1053,20 @@ components:
     Incident:
       type: object
       additionalProperties: false
-      required: [id, sessionId, generation, title, severity, status, startedAt, detectedAt, primaryServiceId, affectedServiceIds, trigger]
+      required:
+        [
+          id,
+          sessionId,
+          generation,
+          title,
+          severity,
+          status,
+          startedAt,
+          detectedAt,
+          primaryServiceId,
+          affectedServiceIds,
+          trigger,
+        ]
       properties:
         id: { type: string, pattern: "^[a-f0-9]{32}$" }
         sessionId: { type: string, pattern: "^[a-f0-9]{32}$" }
@@ -1060,7 +1090,8 @@ components:
       additionalProperties: false
       required: [severity, message]
       properties:
-        severity: { type: string, enum: [debug, info, warning, error, critical] }
+        severity:
+          { type: string, enum: [debug, info, warning, error, critical] }
         message: { type: string }
     MetricPayload:
       type: object
@@ -1083,7 +1114,8 @@ components:
       additionalProperties: false
       required: [severity, message]
       properties:
-        severity: { type: string, enum: [debug, info, warning, error, critical] }
+        severity:
+          { type: string, enum: [debug, info, warning, error, critical] }
         code: { type: string }
         message: { type: string }
     StatePayload:
@@ -1119,7 +1151,17 @@ components:
           job_failure: "#/components/schemas/JobTelemetryEvent"
     TelemetryEventBase:
       type: object
-      required: [id, sessionId, generation, sequence, timestamp, environment, offsetMs, serviceId]
+      required:
+        [
+          id,
+          sessionId,
+          generation,
+          sequence,
+          timestamp,
+          environment,
+          offsetMs,
+          serviceId,
+        ]
       properties:
         id: { type: string, pattern: "^[a-f0-9]{32}$" }
         sessionId: { type: string, pattern: "^[a-f0-9]{32}$" }
@@ -1181,7 +1223,16 @@ components:
     CorrelationScore:
       type: object
       additionalProperties: false
-      required: [temporalScore, serviceScore, dependencyScore, anomalyScore, eventTypeScore, precedenceScore, totalScore]
+      required:
+        [
+          temporalScore,
+          serviceScore,
+          dependencyScore,
+          anomalyScore,
+          eventTypeScore,
+          precedenceScore,
+          totalScore,
+        ]
       properties:
         temporalScore: { type: number, minimum: 0, maximum: 1 }
         serviceScore: { type: number, minimum: 0, maximum: 1 }
@@ -1201,7 +1252,18 @@ components:
     Evidence:
       type: object
       additionalProperties: false
-      required: [id, incidentId, sourceEvent, rank, title, description, correlation, reasons, scoringVersion]
+      required:
+        [
+          id,
+          incidentId,
+          sourceEvent,
+          rank,
+          title,
+          description,
+          correlation,
+          reasons,
+          scoringVersion,
+        ]
       properties:
         id: { type: string, pattern: "^[a-f0-9]{32}$" }
         incidentId: { type: string, pattern: "^[a-f0-9]{32}$" }
@@ -1239,7 +1301,16 @@ components:
     InvestigationContext:
       type: object
       additionalProperties: false
-      required: [schemaVersion, incident, services, dependencies, metricSummaries, timeline, evidence]
+      required:
+        [
+          schemaVersion,
+          incident,
+          services,
+          dependencies,
+          metricSummaries,
+          timeline,
+          evidence,
+        ]
       properties:
         schemaVersion: { type: string, enum: ["1"] }
         incident: { $ref: "#/components/schemas/Incident" }
@@ -1296,13 +1367,25 @@ components:
     AnalysisResult:
       type: object
       additionalProperties: false
-      required: [id, incidentId, contextSchemaVersion, engineVersion, mode, summary, hypotheses, recommendedActions, warnings, createdAt]
+      required:
+        [
+          id,
+          incidentId,
+          contextSchemaVersion,
+          engineVersion,
+          mode,
+          summary,
+          hypotheses,
+          recommendedActions,
+          warnings,
+          createdAt,
+        ]
       properties:
         id: { type: string, pattern: "^[a-f0-9]{32}$" }
         incidentId: { type: string, pattern: "^[a-f0-9]{32}$" }
         contextSchemaVersion: { type: string, enum: ["1"] }
         engineVersion: { type: string }
-        mode: { type: string, enum: [standard] }
+        mode: { type: string, enum: [standard, local, advanced] }
         summary: { type: string }
         hypotheses:
           type: array
